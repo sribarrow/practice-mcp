@@ -3,7 +3,7 @@ import sqlite3
 import pandas as pd
 
 # read from file into pandas
-df = pd.read_csv('practice/data/BasicCompanyData-2025-07-01-part1_7.csv')
+df = pd.read_csv('data/BasicCompanyData-2025-07-01-part1_7.csv')
 
 df.columns = df.columns.str.strip()  # Remove leading/trailing spaces from column names
 
