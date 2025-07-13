@@ -1,7 +1,0 @@
-requests
-pandas
-pydantic
-fastapi
-uvicorn
-fastmcp
-openai

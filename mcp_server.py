@@ -27,22 +27,22 @@ def parse_nl_query(question: str) -> str:
     question = question.lower().strip()
     
     # Simple pattern matching for common queries
-    if "list" in question and "companies" in question:
-        return 'SELECT "CompanyName", " CompanyNumber", "CompanyStatus" FROM companies LIMIT 10'
+    if " all" in question and "companies" in question:
+        return 'SELECT "CompanyName", "CompanyNumber", "CompanyStatus" FROM companies LIMIT 10'
     elif "count" in question and "companies" in question:
         return "SELECT COUNT(*) as total_companies FROM companies"
     elif "active" in question and "companies" in question:
-        return 'SELECT "CompanyName", " CompanyNumber" FROM companies WHERE "CompanyStatus" = "Active" LIMIT 10'
+        return 'SELECT "CompanyName", "CompanyNumber" FROM companies WHERE "CompanyStatus" = "Active" LIMIT 10'
     elif "dissolved" in question and "companies" in question:
-        return 'SELECT "CompanyName", " CompanyNumber", "DissolutionDate" FROM companies WHERE "CompanyStatus" = "Dissolved" LIMIT 10'
-    elif "micro" in question and ("entity" in question or "companies" in question):
-        return 'SELECT "CompanyName", " CompanyNumber", "Accounts.AccountCategory" FROM companies WHERE "Accounts.AccountCategory" = "MICRO ENTITY" LIMIT 10'
+        return 'SELECT "CompanyName", "CompanyNumber", "DissolutionDate" FROM companies WHERE "CompanyStatus" = "Dissolved" LIMIT 10'
+    elif "micro" in question and ("entity" in question):
+        return 'SELECT "CompanyName", "CompanyNumber", "Accounts.AccountCategory" FROM companies WHERE "Accounts.AccountCategory" = "MICRO ENTITY" LIMIT 10'
     elif "small" in question and ("companies" in question or "business" in question):
-        return 'SELECT "CompanyName", " CompanyNumber", "Accounts.AccountCategory" FROM companies WHERE "Accounts.AccountCategory" = "SMALL" LIMIT 10'
+        return 'SELECT "CompanyName", "CompanyNumber", "Accounts.AccountCategory" FROM companies WHERE "Accounts.AccountCategory" = "SMALL" LIMIT 10'
     elif "medium" in question and ("companies" in question or "business" in question):
-        return 'SELECT "CompanyName", " CompanyNumber", "Accounts.AccountCategory" FROM companies WHERE "Accounts.AccountCategory" = "MEDIUM" LIMIT 10'
+        return 'SELECT "CompanyName", "CompanyNumber", "Accounts.AccountCategory" FROM companies WHERE "Accounts.AccountCategory" = "MEDIUM" LIMIT 10'
     elif "large" in question and ("companies" in question or "business" in question):
-        return 'SELECT "CompanyName", " CompanyNumber", "Accounts.AccountCategory" FROM companies WHERE "Accounts.AccountCategory" = "LARGE" LIMIT 10'
+        return 'SELECT "CompanyName", "CompanyNumber", "Accounts.AccountCategory" FROM companies WHERE "Accounts.AccountCategory" = "LARGE" LIMIT 10'
     elif "category" in question or "type" in question:
         # Search across both category fields
         # Extract category term from question
@@ -75,9 +75,9 @@ def parse_nl_query(question: str) -> str:
         
         if category_terms:
             where_clause = " OR ".join(category_terms)
-            return f'SELECT "CompanyName", " CompanyNumber", "CompanyCategory", "Accounts.AccountCategory" FROM companies WHERE {where_clause} LIMIT 10'
+            return f'SELECT "CompanyName", "CompanyNumber", "CompanyCategory", "Accounts.AccountCategory" FROM companies WHERE {where_clause} LIMIT 10'
         else:
-            return 'SELECT "CompanyName", " CompanyNumber", "CompanyCategory", "Accounts.AccountCategory" FROM companies LIMIT 10'
+            return 'SELECT "CompanyName", "CompanyNumber", "CompanyCategory", "Accounts.AccountCategory" FROM companies LIMIT 10'
     elif "company" in question and "name" in question:
         # Extract company name from question
         match = re.search(r'company\s+(?:named\s+)?([a-zA-Z0-9\s]+)', question)
@@ -85,10 +85,10 @@ def parse_nl_query(question: str) -> str:
             company_name = match.group(1).strip()
             return f'SELECT * FROM companies WHERE "CompanyName" LIKE "%{company_name}%" LIMIT 5'
         else:
-            return 'SELECT "CompanyName", " CompanyNumber" FROM companies LIMIT 10'
+            return 'SELECT "CompanyName", "CompanyNumber" FROM companies LIMIT 10'
     else:
         # Default query
-        return 'SELECT "CompanyName", " CompanyNumber", "CompanyStatus" FROM companies LIMIT 10'
+        return 'SELECT "CompanyName", "CompanyNumber", "CompanyStatus" FROM companies LIMIT 10'
 
 @app.post("/query")
 @app.get("/query")
@@ -188,10 +188,66 @@ def read_resource_data(
     finally:
         conn.close()
 
+from fastapi import Form
+from fastapi.responses import HTMLResponse
+
 @app.get("/ask")
 def ask_page():
     """Simple web interface for asking questions"""
     return FileResponse("templates/ask.html")
+
+@app.post("/ask")
+async def ask_submit(question: str = Form(...), details: str = Form(None)):
+    """Process submitted question from ask.html form and show DB results."""
+    error = None
+    results = []
+    columns = []
+    sql_query = ""
+    try:
+        sql_query = parse_nl_query(question)
+        print(sql_query)
+        conn = get_db_connection()
+        cursor = conn.execute(sql_query)
+        columns = [description[0] for description in cursor.description]
+        results = [dict(zip(columns, row)) for row in cursor.fetchall()]
+        conn.close()
+    except Exception as e:
+        error = str(e)
+
+    # Build results table HTML if there are results
+    results_html = ""
+    if error:
+        results_html = f'<div style="color: red; margin: 16px 0;">Error: {error}</div>'
+    elif results:
+        results_html = '<table style="width:100%; border-collapse:collapse; margin-top:24px;">'
+        results_html += '<tr>' + ''.join(f'<th style="border:1px solid #ccc; padding:6px;">{col}</th>' for col in columns) + '</tr>'
+        for row in results:
+            results_html += '<tr>' + ''.join(f'<td style="border:1px solid #ccc; padding:6px;">{row[col]}</td>' for col in columns) + '</tr>'
+        results_html += '</table>'
+    else:
+        results_html = '<div style="margin: 16px 0;">No results found.</div>'
+
+    html_content = f"""
+    <html>
+        <head><title>Ask a Question</title></head>
+        <body style='font-family: Arial, sans-serif; background: #f9f9f9;'>
+            <div style='max-width: 500px; margin: 60px auto; background: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); padding: 32px 24px;'>
+                <h1>Ask a Question</h1>
+                <form action="/ask" method="post" style="margin-bottom:24px;">
+                    <label for="question">Your Question</label>
+                    <textarea id="question" name="question" rows="4" required placeholder="Type your question here...">{question}</textarea>
+                    <label for="details">Additional Details (optional)</label>
+                    <input type="text" id="details" name="details" value="{details or ''}" placeholder="Add more context if needed">
+                    <button type="submit">Submit</button>
+                </form>
+                <div><strong>SQL Query:</strong> <code>{sql_query}</code></div>
+                {results_html}
+                <a href="/ask" style="display:block; margin-top:20px;">Ask another question</a>
+            </div>
+        </body>
+    </html>
+    """
+    return HTMLResponse(content=html_content)
 
 @app.get("/")
 def root():

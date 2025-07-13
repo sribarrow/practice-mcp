@@ -1,102 +1,69 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Ask Database</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ask a Question</title>
     <style>
-        body { 
-            font-family: Arial, sans-serif; 
-            max-width: 800px; 
-            margin: 50px auto; 
-            padding: 20px; 
-            background-color: #f5f5f5;
+        body {
+            font-family: Arial, sans-serif;
+            background: #f9f9f9;
+            margin: 0;
+            padding: 0;
         }
         .container {
-            background: white;
-            padding: 30px;
+            max-width: 500px;
+            margin: 60px auto;
+            background: #fff;
             border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 32px 24px;
         }
-        h2 {
-            color: #333;
-            margin-bottom: 30px;
+        h1 {
             text-align: center;
+            margin-bottom: 24px;
         }
-        input { 
-            width: 70%; 
-            padding: 12px; 
-            margin: 10px 0; 
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 16px;
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
         }
-        button { 
-            padding: 12px 24px; 
-            background: #007cba; 
-            color: white; 
-            border: none; 
-            cursor: pointer; 
+        label {
+            font-weight: 500;
+        }
+        input[type="text"], textarea {
+            padding: 10px;
+            border: 1px solid #ccc;
             border-radius: 4px;
-            font-size: 16px;
-            margin-left: 10px;
+            font-size: 1rem;
+        }
+        button {
+            padding: 10px 0;
+            background: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background 0.2s;
         }
         button:hover {
-            background: #005a87;
-        }
-        #result { 
-            margin-top: 20px; 
-            padding: 15px; 
-            background: #f8f9fa; 
-            white-space: pre-wrap; 
-            border-radius: 4px;
-            border-left: 4px solid #007cba;
-            font-family: 'Courier New', monospace;
-            font-size: 14px;
-        }
-        .loading {
-            color: #666;
-            font-style: italic;
-        }
-        .error {
-            color: #d32f2f;
-            background: #ffebee;
-            border-left-color: #d32f2f;
+            background: #0056b3;
         }
     </style>
 </head>
-<body>
+<body>  
     <div class="container">
-        <h2>Ask Your Database</h2>
-        <form id='form'>
-            <input type='text' id='question' placeholder='Ask a question about your data...' required>
-            <button type='submit'>Ask</button>
+        <h1>Ask a Question</h1>
+        <form action="/ask" method="post">
+            <label for="question">Your Question</label>
+            <textarea id="question" name="question" rows="4" required placeholder="Type your question here..."></textarea>
+
+            <label for="details">Additional Details (optional)</label>
+            <input type="text" id="details" name="details" placeholder="Add more context if needed">
+
+            <button type="submit">Submit</button>
         </form>
-        <div id='result'></div>
     </div>
-    
-    <script>
-        document.getElementById('form').onsubmit = async function(e) {
-            e.preventDefault();
-            const question = document.getElementById('question').value;
-            const resultDiv = document.getElementById('result');
-            
-            resultDiv.innerHTML = '<span class="loading">Loading...</span>';
-            resultDiv.className = '';
-            
-            try {
-                const res = await fetch('/query?question=' + encodeURIComponent(question));
-                const data = await res.json();
-                
-                if (data.results && data.results.length > 0) {
-                    resultDiv.innerHTML = 
-                        `SQL: ${data.sql}\n\nResults:\n${JSON.stringify(data.results, null, 2)}`;
-                } else {
-                    resultDiv.innerHTML = `SQL: ${data.sql}\n\nNo results found.`;
-                }
-            } catch (err) {
-                resultDiv.innerHTML = 'Error: ' + err.message;
-                resultDiv.className = 'error';
-            }
-        }
-    </script>
 </body>
-</html> 
+</html>

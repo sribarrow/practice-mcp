@@ -39,3 +39,16 @@ python <script_name.py>
 ```
 uvicorn mcp_server:app --reload
 ```
+
+## using uv for package management
+```
+uv init  # initialise uv
+uv commands
+    add <package_name>
+    remove <package_name>
+    update <package_name>
+    list
+    info <package_name>
+    search <package_name>
+    
+```
