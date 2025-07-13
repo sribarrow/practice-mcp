@@ -4,3 +4,4 @@ apikey
 .venv
 .python-version
 uv.lock
+data/
